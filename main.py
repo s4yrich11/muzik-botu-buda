@@ -54,7 +54,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 async def on_ready():
     print(f'{bot.user} olarak giriş yapıldı!')
 
-@bot.command(name='play', help='İsimle aratarak veya SoundCloud linki ile müzik çalar.')
+@bot.command(name='play', help='İsimle, YouTube linkiyle veya SoundCloud linkiyle müzik çalar.')
 async def play(ctx, *, search: str):
     print(f"Play komutu alındı: {search}")
     
@@ -75,13 +75,24 @@ async def play(ctx, *, search: str):
         return
 
     async with ctx.typing():
-        # YouTube linklerini engelliyoruz çünkü Render IP'si yasaklı
+        # Eğer kullanıcı YouTube linki attıysa, IP engelini aşmak için videonun başlığını 
+        # bulup SoundCloud üzerinden aratmasını sağlıyoruz (Böylece patlamaz!)
         if "youtube.com" in search or "youtu.be" in search:
-            await ctx.send("⚠️ YouTube linkleri engellendiği için doğrudan açılamıyor. Lütfen şarkının **ismini yazın** veya **SoundCloud linki** kullanın!")
-            return
+            try:
+                # Sadece başlığı öğrenmek için yt_dlp kullanıyoruz (engellenirse yakalanır)
+                info = await bot.loop.run_in_executor(None, lambda: ytdl.extract_info(search, download=False))
+                if 'title' in info:
+                    song_title = info['title']
+                    search = f"scsearch:{song_title}"
+                    print(f"YouTube linki algılandı, SoundCloud'da aranıyor: {song_title}")
+                else:
+                    search = f"scsearch:{search}"
+            except Exception:
+                # Doğrudan YouTube çekemezse arama terimi olarak SoundCloud'a yönlendir
+                search = f"scsearch:{search}"
 
-        # Link değilse SoundCloud'da arat
-        if not search.startswith("http://") and not search.startswith("https://"):
+        # Normal metin araması ise SoundCloud'da arat
+        elif not search.startswith("http://") and not search.startswith("https://"):
             search = f"scsearch:{search}"
             
         try:
