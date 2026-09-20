@@ -23,7 +23,9 @@ ytdl_format_options = {
     'format': 'bestaudio/best',
     'noplaylist': True,
     'quiet': True,
+    'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
 }
+
 ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn',
